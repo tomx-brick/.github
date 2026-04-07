@@ -1,0 +1,68 @@
+name: Build and Push to Registry
+description: Build a Docker image and push it to a container registry
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: 'Runner to use for the job'
+        required: false
+        type: string
+        default: 'self-hosted'
+      docker-endpoint:
+        description: 'Docker daemon endpoint'
+        required: false
+        type: string
+        default: 'tcp://localhost:2375'
+    secrets:
+      DOCKER_REGISTRY:
+        description: 'Docker registry URL'
+        required: false
+
+env:
+  REGISTRY: ${{ secrets.DOCKER_REGISTRY || vars.DOCKER_REGISTRY }}
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ${{ inputs.runner || 'self-hosted' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify Docker connection
+        run: |
+          docker version
+          docker info
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          endpoint: ${{ inputs.docker-endpoint || 'tcp://localhost:2375' }}
+          driver-opts: network=host
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+
+      - name: Image digest
+        run: echo "Image pushed with tags ${{ steps.meta.outputs.tags }}"

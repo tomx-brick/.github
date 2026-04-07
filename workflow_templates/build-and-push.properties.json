@@ -1,0 +1,5 @@
+{
+  "name": "Build and Push to Registry",
+  "description": "Build a Docker image and push it to a container registry",
+  "categories": ["continuous-integration"]
+}
