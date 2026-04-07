@@ -13,6 +13,11 @@ on:
         required: false
         type: string
         default: 'tcp://localhost:2375'
+      insecure-registry:
+        description: 'Whether to allow insecure registry connections'
+        required: false
+        type: boolean
+        default: false
     secrets:
       DOCKER_REGISTRY:
         description: 'Docker registry URL'
@@ -40,6 +45,11 @@ jobs:
         with:
           endpoint: ${{ inputs.docker-endpoint || 'tcp://localhost:2375' }}
           driver-opts: network=host
+          buildkitd-flags: ${{ inputs.insecure-registry && '--allow-insecure-entitlement security.insecure' || '' }}
+          buildkitd-config-inline: |
+            [registry."${{ env.REGISTRY }}"]
+              http = true
+              insecure = true
 
       - name: Extract metadata
         id: meta
