@@ -61,9 +61,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
             type=ref,event=pr
-            type=sha,prefix={{branch}}-
             type=raw,value={{sha}}-{{date 'YYYYMMDDHHmmss'}}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -80,3 +78,33 @@ jobs:
 
       - name: Image digest
         run: echo "Image pushed with tags ${{ steps.meta.outputs.tags }}"
+  cleanup-registry:
+    needs: build-and-push
+    runs-on: ${{ inputs.runner || 'self-hosted'}}
+    steps:
+      - name: Install regctl
+        run: |
+          curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 > regctl
+          chmod +x regctl
+
+      - name: Prune old images
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          KEEP=4
+
+          echo "Checking tags for $IMAGE"
+
+          TAGS=$(./regctl tag ls $IMAGE | grep -v 'buildcache' | sort -r)
+          COUNT=$(echo "$TAGS" | wc -l)
+
+          if [ "$COUNT" -le "$KEEP" ]; then
+            echo "Only $COUNT tags found, no pruning needed."
+            exit 0
+          fi
+
+          echo "Found $COUNT tags, pruning down to $KEEP."
+          TO_DELETE=$(echo "$TAGS" | tail -n +$(($KEEP + 1)))
+          for TAG in $TO_DELETE; do
+            echo "Deleting tag: $TAG"
+            ./regctl tag rm $IMAGE:$TAG
+          done
