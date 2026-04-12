@@ -23,6 +23,10 @@ on:
         required: false
         type: boolean
         default: false
+      image-name:
+        description: 'Name of the Docker image (defaults to repository name)'
+        required: false
+        type: string
     secrets:
       DOCKER_REGISTRY:
         description: 'Docker registry URL'
@@ -30,7 +34,7 @@ on:
 
 env:
   REGISTRY: ${{ secrets.DOCKER_REGISTRY || vars.DOCKER_REGISTRY }}
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ inputs.image-name || github.repository }}
 
 jobs:
   build-and-push:
