@@ -97,8 +97,8 @@ jobs:
 
           echo "Checking tags for $IMAGE"
 
-          # Get all tags except buildcache, sort chronologically (oldest first)
-          TAGS=$(./regctl tag ls $IMAGE | grep -v 'buildcache' | sort)
+          # Get all tags except buildcache, sort by timestamp (newest first, then reverse to get oldest first)
+          TAGS=$(./regctl tag ls $IMAGE | grep -v 'buildcache' | sort -t'-' -k2 -n)
           COUNT=$(echo "$TAGS" | wc -l)
 
           if [ "$COUNT" -le "$KEEP" ]; then
@@ -108,10 +108,10 @@ jobs:
 
           echo "Found $COUNT tags, keeping newest $KEEP and deleting oldest $(($COUNT - $KEEP))."
 
-          # Keep the last KEEP tags, delete the rest (oldest ones)
+          # Keep the last KEEP tags (highest timestamps), delete the rest (lowest timestamps)
           TO_DELETE=$(echo "$TAGS" | head -n $(($COUNT - $KEEP)))
 
-          echo "Tags to delete (oldest):"
+          echo "Tags to delete (oldest by timestamp):"
           echo "$TO_DELETE"
 
           for TAG in $TO_DELETE; do
