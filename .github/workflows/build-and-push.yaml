@@ -87,6 +87,9 @@ jobs:
           curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 > regctl
           chmod +x regctl
 
+      - name: Configure regctl
+        run: |
+          ./regctl registry set --tls-verify=false ${{ env.REGISTRY }}
       - name: Prune old images
         run: |
           IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
