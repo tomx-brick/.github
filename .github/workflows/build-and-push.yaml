@@ -89,7 +89,7 @@ jobs:
 
       - name: Configure regctl
         run: |
-          ./regctl registry set --tls disable ${{ env.REGISTRY }}
+          ./regctl registry set --tls disabled ${{ env.REGISTRY }}
       - name: Prune old images
         run: |
           IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
